@@ -63,7 +63,7 @@ bool create_fsa(file_string_array_t * fsa)
     fsa->capacity = (size_t) INIT_CAPACITY;
     fsa->count = (size_t) 0;
 
-    char * line_array_buffer = (char *) calloc( sizeof(char *), fsa->capacity );
+    char ** line_array_buffer = (char **) calloc( sizeof(char *), fsa->capacity );
 
     if ( line_array_buffer == NULL )
     {
@@ -97,7 +97,7 @@ bool fsa_add_line(file_string_array_t * fsa, char *str)
             return false;
         }
 
-        char * line_array_buffer = (char *) realloc( fsa->line_array, new_capacity );
+        char ** line_array_buffer = (char **) realloc( fsa->line_array, new_capacity );
         if ( line_array_buffer == NULL )
         {
             return false;
