@@ -13,7 +13,7 @@
 typedef struct file_string_array {
 	size_t count;
     size_t capacity;
-	char * line_array;
+	char ** line_array;
 } file_string_array_t;
 
 
