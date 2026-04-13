@@ -64,7 +64,18 @@ int main(int argc, char *argv[])
     }
 
     pthread_t *threads = malloc(num_threads * sizeof(pthread_t));
+    if (!threads) {
+        destroy_fsa(&fsa);
+        free(max_values);
+        return 1;
+    }
     thread_data_t *tdata = malloc(num_threads * sizeof(thread_data_t));
+    if (!tdata) {
+        destroy_fsa(&fsa);
+        free(max_values);
+        free(threads);
+        return 1;
+    }
 
     size_t lines_per_thread = fsa.count / num_threads;
     size_t remainder = fsa.count % num_threads;

@@ -30,10 +30,14 @@ bool read_text_file(char* filename, file_string_array_t * file_string_struct)
     int i, err;
     FILE *fd;
     char *line_buffer = (char*) malloc( BUFFER_SIZE ); // no lines larger than 2000 chars
+    if (line_buffer == NULL) {
+        return false;
+    }
 
     file_string_array_t fsa;
     if ( !create_fsa( &fsa ) )
     {
+        free(line_buffer);
         return false;
     }
 
