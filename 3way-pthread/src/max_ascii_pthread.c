@@ -7,6 +7,7 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <unistd.h>
+#include "file_io.h"
 
 typedef struct {
     int thread_id;
@@ -15,6 +16,34 @@ typedef struct {
     int *max_values;
     file_string_array_t *fsa;
 } thread_data_t;
+
+void *process_chunk(void *args) {
+    thread_data_t *t_data = (thread_data_t)args;
+    int charOrd, maxOrd;
+
+    // Loop through each line
+    for (int i = t_data->start; i < t_data->end; i++) {
+        maxOrd = -1;
+        // Loop through the string until we hit the null terminator
+        for (int j = 0; t_data->fsa[i][j] != '\0'; j++) {
+            // Get the ordinal for this character
+            charOrd = (int)t_data->fsa[i][j];
+    
+            // Skip non-ASCII characters
+            if (charOrd < 0 || charOrd > 127) {
+                continue;
+            }
+
+            // Check if this character is the largest we've seen
+            if (charOrd > maxOrd) {
+                maxOrd = charOrd;
+            }
+        }
+
+        // Shouldn't need a mutex since each thread has an exclusive chunk
+        t_data->max_values[i] = maxOrd;
+    }
+}
 
 int main(int argc, char *argv[])
 {
