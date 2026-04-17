@@ -21,7 +21,7 @@ bool read_text_file(char* filename, file_string_array_t * file_string_struct)
 
     if ( fd == NULL )
     {
-        fprintf(stderr, "Failed to open file\n");
+        fprintf(stderr, "Failed to open file %s\n", filename);
         return false;
     }
 
@@ -48,7 +48,7 @@ bool create_fsa(file_string_array_t * fsa)
     fsa->capacity = (size_t) INIT_CAPACITY;
     fsa->count = (size_t) 0;
 
-    char ** line_array_buffer = (char **) calloc( sizeof(char *), fsa->capacity );
+    char ** line_array_buffer = (char **) calloc( fsa->capacity, sizeof(char *) );
 
     if ( line_array_buffer == NULL )
     {
