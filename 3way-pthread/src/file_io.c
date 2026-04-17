@@ -19,6 +19,12 @@ bool read_text_file(char* filename, file_string_array_t * file_string_struct)
     // Read in the lines from the data file
     fd = fopen( filename, "r" );
 
+    if ( fd == NULL )
+    {
+        fprintf(stderr, "Failed to open file\n");
+        return false;
+    }
+
     for ( int i = 0; i < MAX_CAPACITY; i++ )
     {
         err = fscanf( fd, "%[^\n]\n", line_buffer);
@@ -76,7 +82,7 @@ bool fsa_add_line(file_string_array_t * fsa, char *str)
             return false;
         }
 
-        char ** line_array_buffer = (char **) realloc( fsa->line_array, new_capacity );
+        char ** line_array_buffer = (char **) realloc( fsa->line_array, new_capacity * sizeof(char *) );
         if ( line_array_buffer == NULL )
         {
             return false;
@@ -84,7 +90,7 @@ bool fsa_add_line(file_string_array_t * fsa, char *str)
         fsa->line_array = line_array_buffer;
         fsa->capacity = new_capacity;
     }
-    
+
     // Add the string to the next pointer in the allocated array
     size_t line_len = strnlen( str, (size_t) BUFFER_SIZE );
 
