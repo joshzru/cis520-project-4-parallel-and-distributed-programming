@@ -48,7 +48,7 @@ void *process_chunk(void *args) {
 int main(int argc, char *argv[])
 {
     int num_threads = (argc > 1) ? atoi(argv[1]) : 4;
-    const char *filename = "~eyv/cis520/wiki_dump.txt";
+    const char *filename = "/homes/eyv/cis520/wiki_dump.txt";
 
     file_string_array_t fsa;
     

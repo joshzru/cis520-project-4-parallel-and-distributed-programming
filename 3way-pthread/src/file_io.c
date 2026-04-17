@@ -9,8 +9,7 @@ bool read_text_file(char* filename, file_string_array_t * file_string_struct)
         return false;
     }
 
-    file_string_array_t fsa;
-    if ( !create_fsa( &fsa ) )
+    if ( !create_fsa( file_string_struct ) )
     {
         free(line_buffer);
         return false;
@@ -34,7 +33,7 @@ bool read_text_file(char* filename, file_string_array_t * file_string_struct)
             return false;
         }
         
-        fsa_add_line( &fsa, line_buffer);
+        fsa_add_line( file_string_struct, line_buffer);
     }
 
     fclose( fd );
@@ -103,11 +102,10 @@ bool fsa_add_line(file_string_array_t * fsa, char *str)
     }
 
     // Copy the string from the stack into the allocated string buffer
-    snprintf( str_buffer, sizeof(char*) * (line_len + 1), "%s", str );
+    memcpy(str_buffer, str, line_len + 1);
 
     // Set the char* in the line array to point to the new string buffer
-    fsa->line_array[fsa->count] = str_buffer;
-    fsa->count++;
+    fsa->line_array[fsa->count++] = str_buffer;
 
     return true;
 }
