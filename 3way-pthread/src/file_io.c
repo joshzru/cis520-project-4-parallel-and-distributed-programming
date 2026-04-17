@@ -1,30 +1,5 @@
 #include <file_io.h>
 
-
-bool read_text_file(char* filename, file_string_array_t * file_string_struct)
-{
-    int nlines = 0, maxlines = 100;
-    int i, err;
-    float  charsum=0.0; 
-    int nchars = 0; 
-    FILE *fd;
-    char *line = (char*) malloc( 2001 ); // no lines larger than 2000 chars
-
-    // Read in the lines from the data file
-
-    fd = fopen( "/homes/dan/625/wiki_dump.txt", "r" );
-    for ( i = 0; i < maxlines; i++ )  {
-       err = fscanf( fd, "%[^\n]\n", line);
-       if( err == EOF ) break;
-       nchars = strlen( line );
-       printf("%d: %.1f\n", nlines, find_avg(line, nchars));
-       nlines++;
-    }
-
-    fclose( fd );
-
-}
-
 bool read_text_file(char* filename, file_string_array_t * file_string_struct)
 {
     int i, err;
@@ -113,7 +88,7 @@ bool fsa_add_line(file_string_array_t * fsa, char *str)
     // Add the string to the next pointer in the allocated array
     size_t line_len = strnlen( str, (size_t) BUFFER_SIZE );
 
-    // allocate a buffer for the line
+    // allocate a buffer for the line (+1 since strnlen doesnt include null terminator)
     char * str_buffer = malloc( line_len + 1 );
 
     if ( str_buffer == NULL )
@@ -122,7 +97,7 @@ bool fsa_add_line(file_string_array_t * fsa, char *str)
     }
 
     // Copy the string from the stack into the allocated string buffer
-    snprintf( str_buffer, sizeof(char*) * line_len, "%s", str );
+    snprintf( str_buffer, sizeof(char*) * (line_len + 1), "%s", str );
 
     // Set the char* in the line array to point to the new string buffer
     fsa->line_array[fsa->count] = str_buffer;

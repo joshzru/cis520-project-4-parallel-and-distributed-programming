@@ -18,16 +18,16 @@ typedef struct {
 } thread_data_t;
 
 void *process_chunk(void *args) {
-    thread_data_t *t_data = (thread_data_t)args;
+    thread_data_t *t_data = (thread_data_t *)args;
     int charOrd, maxOrd;
 
     // Loop through each line
     for (int i = t_data->start; i < t_data->end; i++) {
         maxOrd = -1;
         // Loop through the string until we hit the null terminator
-        for (int j = 0; t_data->fsa[i][j] != '\0'; j++) {
+        for (int j = 0; t_data->fsa->line_array[i][j] != '\0'; j++) {
             // Get the ordinal for this character
-            charOrd = (int)t_data->fsa[i][j];
+            charOrd = (int)t_data->fsa->line_array[i][j];
     
             // Skip non-ASCII characters
             if (charOrd < 0 || charOrd > 127) {
