@@ -47,7 +47,20 @@ void *process_chunk(void *args) {
 
 int main(int argc, char *argv[])
 {
-    int num_threads = (argc > 1) ? atoi(argv[1]) : 4;
+    int num_threads = 4;
+    int total_nodes = 1;
+    int my_node     = 0;
+
+    if (argc > 1) num_threads = atoi(argv[1]);
+    if (argc > 2) total_nodes = atoi(argv[2]);
+    if (argc > 3) my_node = atoi(argv[3]);
+
+    if (total_nodes < 1 || my_node < 0 || my_node >= total_nodes) {
+        fprintf(stderr, "Invalid node parameters: total_nodes=%d, my_node=%d\n", 
+                total_nodes, my_node);
+        return 1;
+    }
+
     const char *filename = "/homes/eyv/cis520/wiki_dump.txt";
 
     file_string_array_t fsa;
@@ -57,7 +70,18 @@ int main(int argc, char *argv[])
         return 1;
     }
 
-    int *max_values = calloc(fsa.count, sizeof(int));
+    // Calculate which lines this node is responsible for
+    size_t lines_per_node = fsa.count / total_nodes;
+    size_t remainder = fsa.count % total_nodes;
+
+    size_t node_start = 0;
+    for (int n = 0; n < my_node; n++) {
+        node_start += lines_per_node + (n < (int)remainder ? 1 : 0);
+    }
+    size_t node_end = node_start + lines_per_node + (my_node < (int)remainder ? 1 : 0);
+
+    size_t my_line_count = node_end - node_start;
+    int *max_values = calloc(my_line_count, sizeof(int));
     if (!max_values) {
         destroy_fsa(&fsa);
         return 1;
@@ -77,18 +101,18 @@ int main(int argc, char *argv[])
         return 1;
     }
 
-    size_t lines_per_thread = fsa.count / num_threads;
-    size_t remainder = fsa.count % num_threads;
+    size_t lines_per_thread = my_line_count / num_threads;
+    size_t thread_remainder = my_line_count % num_threads;
     size_t start = 0;
 
     for (int i = 0; i < num_threads; i++) {
-        size_t extra = (i < (int)remainder) ? 1 : 0;
+        size_t extra = (i < (int)thread_remainder) ? 1 : 0;
         tdata[i].thread_id = i;
-        tdata[i].start = start;
-        tdata[i].end = start + lines_per_thread + extra;
+        tdata[i].start = node_start + start;
+        tdata[i].end = node_start + start + lines_per_thread + extra;
         tdata[i].max_values = max_values;
         tdata[i].fsa = &fsa;
-                                          //not yet implemented
+        
         pthread_create(&threads[i], NULL, process_chunk, &tdata[i]);
         start += lines_per_thread + extra;
     }
@@ -98,8 +122,9 @@ int main(int argc, char *argv[])
     }
 
     // Print final output
-    for (size_t i = 0; i < fsa.count; i++) {
-        printf("%zu: %d\n", i, max_values[i]);
+    for (size_t i = 0; i < my_line_count; i++) {
+        size_t global_line = node_start + i;
+        printf("%zu: %d\n", global_line, max_values[i]);
     }
 
     destroy_fsa(&fsa);
