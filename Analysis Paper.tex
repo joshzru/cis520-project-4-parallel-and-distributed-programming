@@ -1,0 +1,33 @@
+\documentclass{article}
+
+% Cusomtization --------------
+
+% GEOMETRY
+\usepackage[letterpaper, top=1.0in, bottom=1.0in, left=1.0in, right=1.0in, heightrounded]{geometry}
+
+% Line Height
+\renewcommand{\baselinestretch}{1.15} % Line Spacing
+
+% Parskip and Parindent
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{0.8em}
+
+% -----------------------------
+
+\title{Draft Analysis}
+\author{Josh Zrubek, Henry Hornung, John Spexarth}
+\date{April 2026}
+
+\begin{document}
+
+\maketitle
+
+\section{Software Architecture}
+
+The current implementation of the program reads the entire file into memory first. This limits the minimum amount of memory the program needs to function. The file it reads is assumed to mostly contain ASCII character's ranging from 0 - 127.
+
+\section{Performance Analysis}
+
+Current data is limited, but the two fastest jobs were 8 cores, 1 node, 1 G per core and 8 cores, 1 node, 256 M per core at 7 seconds of total runtime. The job with 2 cores, 1 node, 1 G per core had 10 seconds of total runtime. This appears to show that the number of cores has an impact on runtime, but more statistical analysis would be needed to determine significance.
+
+\end{document}
