@@ -22,7 +22,7 @@ void *process_chunk(void *args) {
     int charOrd, maxOrd;
 
     // Loop through each line
-    for (int i = t_data->start; i < t_data->end; i++) {
+    for (size_t i = t_data->start; i < t_data->end; i++) {
         maxOrd = -1;
         // Loop through the string until we hit the null terminator
         for (int j = 0; t_data->fsa->line_array[i][j] != '\0'; j++) {
@@ -43,6 +43,8 @@ void *process_chunk(void *args) {
         // Shouldn't need a mutex since each thread has an exclusive chunk
         t_data->max_values[i] = maxOrd;
     }
+
+    return NULL;
 }
 
 int main(int argc, char *argv[])
