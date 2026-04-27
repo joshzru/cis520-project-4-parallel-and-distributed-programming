@@ -430,3 +430,5 @@ FodyWeavers.xsd
 
 .vscode
 .gitignore
+
+**/build/
