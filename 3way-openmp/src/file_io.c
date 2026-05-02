@@ -2,7 +2,7 @@
 
 bool read_text_file(char* filename, file_string_array_t * file_string_struct)
 {
-    int i, err;
+    int err;
     FILE *fd;
     char *line_buffer = (char*) malloc( BUFFER_SIZE ); // no lines larger than 2000 chars
     if (line_buffer == NULL) {
@@ -30,6 +30,7 @@ bool read_text_file(char* filename, file_string_array_t * file_string_struct)
         if ( err == EOF ) break;
         if ( err < 0 || err >= BUFFER_SIZE )
         {
+            fprintf(stderr, "Failed to read line from file %s\n", filename);
             return false;
         }
         
@@ -51,6 +52,7 @@ bool create_fsa(file_string_array_t * fsa)
 
     if ( line_array_buffer == NULL )
     {
+        fprintf(stderr, "Failed to allocate memory for line array buffer when creating file string array\n");
         return false;
     }
 
@@ -78,12 +80,14 @@ bool fsa_add_line(file_string_array_t * fsa, char *str)
         size_t new_capacity = fsa->capacity * 2;
         if ( new_capacity >= (size_t) MAX_CAPACITY )
         {
+            fprintf(stderr, "Exceeded maximum capacity for file string array\n");
             return false;
         }
 
         char ** line_array_buffer = (char **) realloc( fsa->line_array, new_capacity * sizeof(char *) );
         if ( line_array_buffer == NULL )
         {
+            fprintf(stderr, "Failed to reallocate memory for line array\n");
             return false;
         }
         fsa->line_array = line_array_buffer;
@@ -95,9 +99,9 @@ bool fsa_add_line(file_string_array_t * fsa, char *str)
 
     // allocate a buffer for the line (+1 since strnlen doesnt include null terminator)
     char * str_buffer = malloc( line_len + 1 );
-
     if ( str_buffer == NULL )
     {
+        fprintf(stderr, "Failed to allocate memory for a new line buffer");
         return false;
     }
 
