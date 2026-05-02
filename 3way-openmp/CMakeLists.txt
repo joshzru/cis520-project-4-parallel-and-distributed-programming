@@ -9,6 +9,8 @@ target_include_directories(file_io PUBLIC include)
 # Compile the main executable
 add_executable(${PROJECT_NAME} src/max_ascii_openmp.c)
 
+target_include_directories(${PROJECT_NAME} PRIVATE include)
+
 # Use c11 standard
 target_compile_features(${PROJECT_NAME} PUBLIC c_std_11)
 # Use -Wall -Wextra flags
