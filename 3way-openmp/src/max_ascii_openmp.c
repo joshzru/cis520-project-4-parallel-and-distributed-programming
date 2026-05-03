@@ -20,11 +20,7 @@ int main(int argc, char *argv[]) {
     omp_set_num_threads(num_threads);
 
     int max_ascii_i = 0; // The next free index
-    int *max_ascii = malloc(NUM_LINES * sizeof(int));
-    if (!max_ascii) {
-        fprintf(stderr, "Failed to allocate memory for max_ascii array\n");
-        return EXIT_FAILURE;
-    }
+    int max_ascii[NUM_LINES];
 
     file_string_array_t fsa;
     if (!create_fsa(&fsa, WIKI_DUMP_FILENAME)) {
@@ -33,7 +29,7 @@ int main(int argc, char *argv[]) {
     }
 
     while (!fsa.end_of_file) {
-        if (!read_next_chunk(&fsa, CHUNK_SIZE)) {
+        if (!fsa_read_next_chunk(&fsa, CHUNK_SIZE)) {
             fprintf(stderr, "Failed to read chunk");
             return EXIT_FAILURE;
         }

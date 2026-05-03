@@ -1,6 +1,6 @@
 #include <file_io.h>
 
-bool read_next_chunk(file_string_array_t *fsa, size_t chunk_size) {
+bool fsa_read_next_chunk(file_string_array_t *fsa, size_t chunk_size) {
     if (!fsa) {
         return false;
     }
@@ -9,9 +9,9 @@ bool read_next_chunk(file_string_array_t *fsa, size_t chunk_size) {
     destroy_fsa_lines(fsa);
 
     // Retain current capacity, and overwrite previous lines.
-    char buff[BUFFER_SIZE];
+    char buff[LINE_BUFFER_SIZE];
     for (size_t i = 0; i < chunk_size; i++) {
-        if (fgets(buff, BUFFER_SIZE, fsa->fp) == NULL) {
+        if (fgets(buff, LINE_BUFFER_SIZE, fsa->fp) == NULL) {
             // Check for end of file.
             if (feof(fsa->fp) != 0) {
                 fsa->end_of_file = true;
@@ -19,7 +19,6 @@ bool read_next_chunk(file_string_array_t *fsa, size_t chunk_size) {
             }
             fprintf(stderr, "Failed to read line from file");
             destroy_fsa_lines(fsa);
-            free(buff);
             return false;
         }
 
@@ -34,7 +33,7 @@ bool read_next_chunk(file_string_array_t *fsa, size_t chunk_size) {
 
 bool create_fsa(file_string_array_t * fsa, char *filename)
 {
-    fsa->capacity = (size_t) INIT_CAPACITY;
+    fsa->capacity = (size_t) INIT_LINE_CAPACITY;
     fsa->count = 0;
     fsa->end_of_file = false;
     
@@ -84,7 +83,7 @@ bool fsa_add_line(file_string_array_t * fsa, char *str)
     if ( fsa->count >= fsa->capacity )
     {
         size_t new_capacity = fsa->capacity * 2;
-        if ( new_capacity >= (size_t) MAX_CAPACITY )
+        if ( new_capacity >= (size_t) MAX_LINE_CAPACITY )
         {
             fprintf(stderr, "Exceeded maximum capacity for file string array\n");
             return false;
@@ -101,7 +100,7 @@ bool fsa_add_line(file_string_array_t * fsa, char *str)
     }
 
     // Add the string to the next pointer in the allocated array
-    size_t line_len = strnlen( str, (size_t) BUFFER_SIZE );
+    size_t line_len = strnlen( str, (size_t) LINE_BUFFER_SIZE );
 
     // allocate a buffer for the line (+1 since strnlen doesnt include null terminator)
     char * str_buffer = malloc( line_len + 1 );

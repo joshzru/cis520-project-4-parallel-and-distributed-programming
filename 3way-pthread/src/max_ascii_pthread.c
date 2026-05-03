@@ -1,36 +1,21 @@
 // 3way-pthread/max_ascii_pthread.c
-#include <stdio.h>
-#include <stdlib.h>
-#include <pthread.h>
-#include <string.h>
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <fcntl.h>
-#include <unistd.h>
-#include "file_io.h"
-
-typedef struct {
-    int thread_id;
-    size_t start;
-    size_t end;
-    int *max_values;
-    file_string_array_t *fsa;
-} thread_data_t;
+#include "max_ascii_pthread.h"
 
 void *process_chunk(void *args) {
-    thread_data_t *t_data = (thread_data_t *)args;
+    thread_data_t *tdata = (thread_data_t *)args;
+    char c;
     int charOrd, maxOrd;
 
     // Loop through each line
-    for (size_t i = t_data->start; i < t_data->end; i++) {
+    for (size_t i = tdata->start; i < tdata->end; i++) {
         maxOrd = -1;
         // Loop through the string until we hit the null terminator
-        for (int j = 0; t_data->fsa->line_array[i][j] != '\0'; j++) {
+        for (int j = 0; (c = tdata->fsa->line_array[i][j]) != '\0'; j++) {
             // Get the ordinal for this character
-            charOrd = (int)t_data->fsa->line_array[i][j];
+            charOrd = (int)c;
     
             // Skip non-ASCII characters
-            if (charOrd < 0 || charOrd > 127) {
+            if (charOrd < ASCII_MIN || charOrd > ASCII_MAX) {
                 continue;
             }
 
@@ -41,7 +26,7 @@ void *process_chunk(void *args) {
         }
 
         // Shouldn't need a mutex since each thread has an exclusive chunk
-        t_data->max_values[i] = maxOrd;
+        tdata->max_values[tdata->offset + i] = maxOrd;
     }
 
     return NULL;
@@ -49,90 +34,68 @@ void *process_chunk(void *args) {
 
 int main(int argc, char *argv[])
 {
-    int num_threads = 4;
-    int total_nodes = 1;
-    int my_node     = 0;
+    size_t num_threads;
 
-    if (argc > 1) num_threads = atoi(argv[1]);
-    if (argc > 2) total_nodes = atoi(argv[2]);
-    if (argc > 3) my_node = atoi(argv[3]);
-
-    if (total_nodes < 1 || my_node < 0 || my_node >= total_nodes) {
-        fprintf(stderr, "Invalid node parameters: total_nodes=%d, my_node=%d\n", 
-                total_nodes, my_node);
-        return 1;
+    if (argc != 2) {
+        fprintf(stderr, "Usage %s: <num_threads>\n", argv[0]);
     }
 
-    const char *filename = "/homes/eyv/cis520/wiki_dump.txt";
+    num_threads = atoi(argv[1]);
+
+    if (num_threads < 1) {
+        fprintf(stderr, "Invalid node parameters: num_threads=%d\n", 
+                num_threads);
+        return EXIT_FAILURE;
+    }
 
     file_string_array_t fsa;
-    
-    if (!read_text_file((char*)filename, &fsa)) {
-        fprintf(stderr, "Failed to read file\n");
-        return 1;
+    if (!create_fsa(&fsa, WIKI_DUMP_FILENAME)) {
+        fprintf(stderr, "Failed to create fsa");
+        return EXIT_FAILURE;
     }
 
-    // Calculate which lines this node is responsible for
-    size_t lines_per_node = fsa.count / total_nodes;
-    size_t remainder = fsa.count % total_nodes;
+    int max_values[NUM_LINES];
+    size_t max_values_i = 0;
+    pthread_t threads[num_threads];
+    thread_data_t tdata[num_threads];
 
-    size_t node_start = 0;
-    for (int n = 0; n < my_node; n++) {
-        node_start += lines_per_node + (n < (int)remainder ? 1 : 0);
-    }
-    size_t node_end = node_start + lines_per_node + (my_node < (int)remainder ? 1 : 0);
+    while (!fsa.end_of_file) {
+        if (!fsa_read_next_chunk(&fsa, CHUNK_SIZE)) {
+            fprintf(stderr, "Failed to read next chunk from file");
+            destroy_fsa(&fsa);
+            return EXIT_FAILURE;
+        }
 
-    size_t my_line_count = node_end - node_start;
-    int *max_values = calloc(my_line_count, sizeof(int));
-    if (!max_values) {
-        destroy_fsa(&fsa);
-        return 1;
-    }
+        size_t lines_per_thread = fsa.count / num_threads;
+        size_t thread_remainder = fsa.count % num_threads;
+        size_t start = 0;
 
-    pthread_t *threads = malloc(num_threads * sizeof(pthread_t));
-    if (!threads) {
-        destroy_fsa(&fsa);
-        free(max_values);
-        return 1;
-    }
-    thread_data_t *tdata = malloc(num_threads * sizeof(thread_data_t));
-    if (!tdata) {
-        destroy_fsa(&fsa);
-        free(max_values);
-        free(threads);
-        return 1;
-    }
+        for (size_t i = 0; i < num_threads; i++) {
+            size_t extra = i < thread_remainder ? 1 : 0;
 
-    size_t lines_per_thread = my_line_count / num_threads;
-    size_t thread_remainder = my_line_count % num_threads;
-    size_t start = 0;
+            tdata[i].start = start;
+            tdata[i].end = start + lines_per_thread + extra;
+            tdata[i].max_values = max_values;
+            tdata[i].fsa = &fsa;
+            tdata[i].offset = max_values_i;
 
-    for (int i = 0; i < num_threads; i++) {
-        size_t extra = (i < (int)thread_remainder) ? 1 : 0;
-        tdata[i].thread_id = i;
-        tdata[i].start = node_start + start;
-        tdata[i].end = node_start + start + lines_per_thread + extra;
-        tdata[i].max_values = max_values;
-        tdata[i].fsa = &fsa;
-        
-        pthread_create(&threads[i], NULL, process_chunk, &tdata[i]);
-        start += lines_per_thread + extra;
-    }
+            pthread_create(&threads[i], NULL, process_chunk, &tdata[i]);
+            start += lines_per_thread + extra;
+        }
 
-    for (int i = 0; i < num_threads; i++) {
-        pthread_join(threads[i], NULL);
+        for (size_t i = 0; i < num_threads; i++) {
+            pthread_join(threads[i], NULL);
+        }
+
+        max_values_i += fsa.count;
     }
 
     // Print final output
-    for (size_t i = 0; i < my_line_count; i++) {
-        size_t global_line = node_start + i;
-        printf("%zu: %d\n", global_line, max_values[i]);
+    for (size_t i = 0; i < max_values_i; i++) {
+        printf("Line: %zu; Max ASCII: %d\n", global_line, max_values[i]);
     }
 
     destroy_fsa(&fsa);
-    free(max_values);
-    free(threads);
-    free(tdata);
 
-    return 0;
+    return EXIT_SUCCESS;
 }
