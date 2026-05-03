@@ -19,9 +19,8 @@ int main(int argc, char *argv[]) {
 
     omp_set_num_threads(num_threads);
 
-    int max_ascii_size = CHUNK_SIZE;
     int max_ascii_i = 0; // The next free index
-    int *max_ascii = malloc(max_ascii_size * sizeof(int));
+    int *max_ascii = malloc(NUM_LINES * sizeof(int));
     if (!max_ascii) {
         fprintf(stderr, "Failed to allocate memory for max_ascii array\n");
         return EXIT_FAILURE;
@@ -35,7 +34,7 @@ int main(int argc, char *argv[]) {
 
     while (!fsa.end_of_file) {
         if (!read_next_chunk(&fsa, CHUNK_SIZE)) {
-            fpritnf(stderr, "Failed to read chunk");
+            fprintf(stderr, "Failed to read chunk");
             return EXIT_FAILURE;
         }
 
@@ -59,33 +58,22 @@ int main(int argc, char *argv[]) {
                 }
             }
 
-            max_ascii[max_ascii_i++] = maxOrd;
+            // Index with local i to prevent race conditions.
+            max_ascii[max_ascii_i + i] = maxOrd;
         }
-
-        // Resize the max_ascii array to accomodate the new chunk
-        if (max_ascii_size < max_ascii_i) {
-            while (max_ascii_size < max_ascii_i) {
-                max_ascii_size *= 2;
-            }
-            int *temp = realloc(max_ascii, max_ascii_size * sizeof(int));
-            if (!temp) {
-                fprintf(stderr, "Failed to reallocate memory for max_ascii array\n");
-                destroy_fsa(&fsa);
-                free(max_ascii);
-                return EXIT_FAILURE;
-            }
-            max_ascii = temp;
-        }
+        
+        max_ascii_i += fsa.count;
     }
 
     // Print output for this node
     for (int i = 0; i < max_ascii_i; i++) {
-        printf("Line %ld: Max ASCII = %d\n", i, max_ascii[i]);
+        printf("Line %d: Max ASCII = %d\n", i, max_ascii[i]);
     }
     
     // Clean up
     // fsa is destroyed at the end of each loop
     free(max_ascii);
+    destroy_fsa(&fsa);
 
     return EXIT_SUCCESS;
 }

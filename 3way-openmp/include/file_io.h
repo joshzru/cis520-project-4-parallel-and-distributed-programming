@@ -3,7 +3,7 @@
 
 #define INIT_CAPACITY 64
 #define MAX_CAPACITY 2097152
-#define BUFFER_SIZE 65535
+#define BUFFER_SIZE 8192
 
 #include <stdlib.h>
 #include <stdint.h>
@@ -23,9 +23,11 @@ bool create_fsa(file_string_array_t * fsa, char *filename);
 
 void destroy_fsa(file_string_array_t * fsa);
 
-bool fsa_add_line(file_string_array_t * fsa, char *str);
+void destroy_fsa_lines(file_string_array_t *fsa);
 
 bool read_next_chunk(file_string_array_t *fsa, size_t chunk_size);
+
+bool fsa_add_line(file_string_array_t * fsa, char *str);
 
 void close_fsa(file_string_array_t *fsa);
 

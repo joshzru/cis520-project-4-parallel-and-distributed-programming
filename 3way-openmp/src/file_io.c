@@ -1,8 +1,6 @@
 #include <file_io.h>
 
 bool read_next_chunk(file_string_array_t *fsa, size_t chunk_size) {
-    char *buff = NULL;
-    
     if (!fsa) {
         return false;
     }
@@ -10,10 +8,9 @@ bool read_next_chunk(file_string_array_t *fsa, size_t chunk_size) {
     // Free all lines so we don't leak memory overwriting them.
     destroy_fsa_lines(fsa);
 
-    // Retain current capacity, but reset count and overwrite previous lines.
-    fsa->count = 0;
+    // Retain current capacity, and overwrite previous lines.
+    char buff[BUFFER_SIZE];
     for (size_t i = 0; i < chunk_size; i++) {
-        buff = malloc(BUFFER_SIZE);
         if (fgets(buff, BUFFER_SIZE, fsa->fp) == NULL) {
             // Check for end of file.
             if (feof(fsa->fp) != 0) {
@@ -21,8 +18,8 @@ bool read_next_chunk(file_string_array_t *fsa, size_t chunk_size) {
                 break;
             }
             fprintf(stderr, "Failed to read line from file");
+            destroy_fsa_lines(fsa);
             free(buff);
-            destroy_fsa(fsa);
             return false;
         }
 
@@ -31,8 +28,6 @@ bool read_next_chunk(file_string_array_t *fsa, size_t chunk_size) {
             return false;
         }
     }
-
-    free(buff);
 
     return true;
 }
@@ -71,7 +66,6 @@ void destroy_fsa(file_string_array_t * fsa)
     fclose(fsa->fp);
     fsa->line_array = NULL;
     fsa->fp = NULL;
-    fsa->count = 0;
     fsa->capacity = 0;
 }
 
@@ -81,6 +75,7 @@ void destroy_fsa_lines(file_string_array_t *fsa) {
         free(fsa->line_array[i]);
         fsa->line_array[i] = NULL;
     }
+    fsa->count = 0;
 }
 
 bool fsa_add_line(file_string_array_t * fsa, char *str)
