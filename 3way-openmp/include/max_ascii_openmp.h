@@ -11,7 +11,7 @@
 #include "file_io.h"
 
 #define WIKI_DUMP_FILENAME "/homes/eyv/cis520/wiki_dump.txt"
-#define CHUNK_SIZE 50000
+#define CHUNK_SIZE 20000
 #define ASCII_MAX 127
 #define ASCII_MIN 0
 #define NUM_LINES 1000000

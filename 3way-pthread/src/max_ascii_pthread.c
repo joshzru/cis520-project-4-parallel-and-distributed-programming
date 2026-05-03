@@ -43,7 +43,7 @@ int main(int argc, char *argv[])
     num_threads = atoi(argv[1]);
 
     if (num_threads < 1) {
-        fprintf(stderr, "Invalid node parameters: num_threads=%d\n", 
+        fprintf(stderr, "Invalid node parameters: num_threads=%zu\n", 
                 num_threads);
         return EXIT_FAILURE;
     }
@@ -92,7 +92,7 @@ int main(int argc, char *argv[])
 
     // Print final output
     for (size_t i = 0; i < max_values_i; i++) {
-        printf("Line: %zu; Max ASCII: %d\n", global_line, max_values[i]);
+        printf("Line: %zu; Max ASCII: %d\n", i, max_values[i]);
     }
 
     destroy_fsa(&fsa);
