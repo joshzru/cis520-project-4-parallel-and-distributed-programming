@@ -16,16 +16,17 @@ typedef struct file_string_array {
     size_t capacity;
 	char ** line_array;
 	bool end_of_file;
+	FILE *fp;
 } file_string_array_t;
 
-
-bool read_text_file(char* filename, file_string_array_t * file_string_struct, long offset, size_t chunk_size);
-
-bool create_fsa(file_string_array_t * fsa);
+bool create_fsa(file_string_array_t * fsa, char *filename);
 
 void destroy_fsa(file_string_array_t * fsa);
 
 bool fsa_add_line(file_string_array_t * fsa, char *str);
 
+bool read_next_chunk(file_string_array_t *fsa, size_t chunk_size);
+
+void close_fsa(file_string_array_t *fsa);
 
 #endif //FILE_IO_H

@@ -1,78 +1,55 @@
 #include <file_io.h>
 
-bool read_text_file(char* filename, file_string_array_t * fsa, long offset, size_t chunk_size)
-{
-    int err;
-    FILE *fd;
-
-    if (chunk_size > MAX_CAPACITY) {
-        fprintf(stderr, "Chunk size %zu exceeds maximum capacity %d\n", chunk_size, MAX_CAPACITY);
+bool read_next_chunk(file_string_array_t *fsa, size_t chunk_size) {
+    char *buff = NULL;
+    
+    if (!fsa) {
         return false;
     }
 
-     if (offset < 0) {
-        fprintf(stderr, "Offset cannot be negative: %ld\n", offset);
-        return false;
-    }
+    // Free all lines so we don't leak memory overwriting them.
+    destroy_fsa_lines(fsa);
 
-    char *line_buffer = (char*) malloc( BUFFER_SIZE ); // no lines larger than 2000 chars
-    if (line_buffer == NULL) {
-        fprintf(stderr, "Failed to allocate memory for line buffer when reading text file\n");
-        return false;
-    }
-
-    if ( !create_fsa( fsa ) )
-    {
-        fprintf(stderr, "Failed to create file string array when reading text file\n");
-        free(line_buffer);
-        return false;
-    }
-
-    // Open the file and seek to the offset
-    fd = fopen( filename, "r" );
-    if ( fd == NULL )
-    {
-        fprintf(stderr, "Failed to open file %s\n", filename);
-        free(line_buffer);
-        return false;
-    }
-
-    if (fseek(fd, offset, SEEK_SET) != 0) {
-        fprintf(stderr, "Failed to seek to offset %ld in file %s\n", offset, filename);
-        fclose(fd);
-        free(line_buffer);
-        return false;
-    }
-
-
-
-    for ( size_t i = 0; i < chunk_size; i++ )
-    {
-        err = fscanf( fd, "%65535[^\n]\n", line_buffer);
-        if ( err == EOF ) {
-            fsa->end_of_file = true;
-            break;
-        }
-        if ( err < 0 || err >= BUFFER_SIZE )
-        {
-            fprintf(stderr, "Failed to read line from file %s\n", filename);
+    // Retain current capacity, but reset count and overwrite previous lines.
+    fsa->count = 0;
+    for (size_t i = 0; i < chunk_size; i++) {
+        buff = malloc(BUFFER_SIZE);
+        if (fgets(buff, BUFFER_SIZE, fsa->fp) == NULL) {
+            // Check for end of file.
+            if (feof(fsa->fp) != 0) {
+                fsa->end_of_file = true;
+                break;
+            }
+            fprintf(stderr, "Failed to read line from file");
+            free(buff);
+            destroy_fsa(fsa);
             return false;
         }
-        
-        fsa_add_line( fsa, line_buffer);
+
+        if (!fsa_add_line(fsa, buff)) {
+            fprintf(stderr, "Failed to add line to fsa");
+            return false;
+        }
     }
 
-    fclose( fd );
-    free( line_buffer );
+    free(buff);
 
     return true;
 }
 
-bool create_fsa(file_string_array_t * fsa)
+bool create_fsa(file_string_array_t * fsa, char *filename)
 {
     fsa->capacity = (size_t) INIT_CAPACITY;
     fsa->count = 0;
     fsa->end_of_file = false;
+    
+    FILE * fp = fopen(filename, "r");
+    if (!fp) {
+        fprintf(stderr, "Failed to open file");
+        return false;
+    }
+
+    fsa->fp = fp;
 
     char ** line_array_buffer = (char **) calloc( fsa->capacity, sizeof(char *) );
     if ( line_array_buffer == NULL )
@@ -88,13 +65,22 @@ bool create_fsa(file_string_array_t * fsa)
 
 void destroy_fsa(file_string_array_t * fsa)
 {
-    // Free all char array pointers that have been filled in the line array
-    for ( size_t i = 0; i < fsa->count; i++ )
-    {
-        free( fsa->line_array[i] );
-    }
+    destroy_fsa_lines(fsa);
 
     free(fsa->line_array);
+    fclose(fsa->fp);
+    fsa->line_array = NULL;
+    fsa->fp = NULL;
+    fsa->count = 0;
+    fsa->capacity = 0;
+}
+
+void destroy_fsa_lines(file_string_array_t *fsa) {
+    // Free all char array pointers that have been filled in the line array
+    for (size_t i = 0; i < fsa->count; i++) {
+        free(fsa->line_array[i]);
+        fsa->line_array[i] = NULL;
+    }
 }
 
 bool fsa_add_line(file_string_array_t * fsa, char *str)

@@ -20,29 +20,34 @@ int main(int argc, char *argv[]) {
     omp_set_num_threads(num_threads);
 
     int max_ascii_size = CHUNK_SIZE;
+    int max_ascii_i = 0; // The next free index
     int *max_ascii = malloc(max_ascii_size * sizeof(int));
     if (!max_ascii) {
         fprintf(stderr, "Failed to allocate memory for max_ascii array\n");
         return EXIT_FAILURE;
     }
 
-    // Start at offset 0 and read in chunks of the file at a time.
-    long offset = 0;
     file_string_array_t fsa;
-    if (!read_text_file(WIKI_DUMP_FILENAME, &fsa, offset, CHUNK_SIZE)) {
-        fprintf(stderr, "Failed to read file\n");
+    if (!create_fsa(&fsa, WIKI_DUMP_FILENAME)) {
+        fprintf(stderr, "Failed to create fsa");
         return EXIT_FAILURE;
     }
 
-    while (!fsa.end_of_file && fsa.count > 0) {
+    while (!fsa.end_of_file) {
+        if (!read_next_chunk(&fsa, CHUNK_SIZE)) {
+            fpritnf(stderr, "Failed to read chunk");
+            return EXIT_FAILURE;
+        }
+
         // Process the chunk of lines read in from the file
         #pragma omp parallel for
         for (size_t i = 0; i < fsa.count; i++) {
             char c;
             int charOrd, maxOrd = -1;
 
-            // For each character in the line, check if it's a valid ASCII character
-            // and update the max ASCII value for that line, if applicable
+            // For each character in the line, check if it's a valid ASCII
+            // character and update the max ASCII value for that line, if
+            // applicable
             for (int j = 0; (c = fsa.line_array[i][j]) != '\0'; j++) {
                 charOrd = (int)c;
                 if (charOrd < ASCII_MIN || charOrd > ASCII_MAX) {
@@ -54,22 +59,12 @@ int main(int argc, char *argv[]) {
                 }
             }
 
-            // Store the max ASCII value for this line in the array
-            // Don't need a lock because each thread has a mutually exclusive range
-            max_ascii[i + offset] = maxOrd;
-        }
-
-        offset += fsa.count;
-        // Destroy the fsa and read in the next chunk of lines from the file.
-        destroy_fsa(&fsa);
-        if (!read_text_file(WIKI_DUMP_FILENAME, &fsa, offset, CHUNK_SIZE)) {
-            fprintf(stderr, "Failed to read file\n");
-            return EXIT_FAILURE;
+            max_ascii[max_ascii_i++] = maxOrd;
         }
 
         // Resize the max_ascii array to accomodate the new chunk
-        if (max_ascii_size < offset + fsa.count) {
-            while (max_ascii_size < offset + fsa.count) {
+        if (max_ascii_size < max_ascii_i) {
+            while (max_ascii_size < max_ascii_i) {
                 max_ascii_size *= 2;
             }
             int *temp = realloc(max_ascii, max_ascii_size * sizeof(int));
@@ -84,7 +79,7 @@ int main(int argc, char *argv[]) {
     }
 
     // Print output for this node
-    for (long i = 0; i < offset; i++) {
+    for (int i = 0; i < max_ascii_i; i++) {
         printf("Line %ld: Max ASCII = %d\n", i, max_ascii[i]);
     }
     
