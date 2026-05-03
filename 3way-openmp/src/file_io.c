@@ -1,40 +1,65 @@
 #include <file_io.h>
 
-bool read_text_file(char* filename, file_string_array_t * file_string_struct)
+bool read_text_file(char* filename, file_string_array_t * fsa, long offset, size_t chunk_size)
 {
     int err;
     FILE *fd;
-    char *line_buffer = (char*) malloc( BUFFER_SIZE ); // no lines larger than 2000 chars
-    if (line_buffer == NULL) {
+
+    if (chunk_size > MAX_CAPACITY) {
+        fprintf(stderr, "Chunk size %zu exceeds maximum capacity %d\n", chunk_size, MAX_CAPACITY);
         return false;
     }
 
-    if ( !create_fsa( file_string_struct ) )
+     if (offset < 0) {
+        fprintf(stderr, "Offset cannot be negative: %ld\n", offset);
+        return false;
+    }
+
+    char *line_buffer = (char*) malloc( BUFFER_SIZE ); // no lines larger than 2000 chars
+    if (line_buffer == NULL) {
+        fprintf(stderr, "Failed to allocate memory for line buffer when reading text file\n");
+        return false;
+    }
+
+    if ( !create_fsa( fsa ) )
     {
+        fprintf(stderr, "Failed to create file string array when reading text file\n");
         free(line_buffer);
         return false;
     }
 
-    // Read in the lines from the data file
+    // Open the file and seek to the offset
     fd = fopen( filename, "r" );
-
     if ( fd == NULL )
     {
         fprintf(stderr, "Failed to open file %s\n", filename);
+        free(line_buffer);
         return false;
     }
 
-    for ( int i = 0; i < MAX_CAPACITY; i++ )
+    if (fseek(fd, offset, SEEK_SET) != 0) {
+        fprintf(stderr, "Failed to seek to offset %ld in file %s\n", offset, filename);
+        fclose(fd);
+        free(line_buffer);
+        return false;
+    }
+
+
+
+    for ( size_t i = 0; i < chunk_size; i++ )
     {
-        err = fscanf( fd, "%[^\n]\n", line_buffer);
-        if ( err == EOF ) break;
+        err = fscanf( fd, "%65535[^\n]\n", line_buffer);
+        if ( err == EOF ) {
+            fsa->end_of_file = true;
+            break;
+        }
         if ( err < 0 || err >= BUFFER_SIZE )
         {
             fprintf(stderr, "Failed to read line from file %s\n", filename);
             return false;
         }
         
-        fsa_add_line( file_string_struct, line_buffer);
+        fsa_add_line( fsa, line_buffer);
     }
 
     fclose( fd );
@@ -46,10 +71,10 @@ bool read_text_file(char* filename, file_string_array_t * file_string_struct)
 bool create_fsa(file_string_array_t * fsa)
 {
     fsa->capacity = (size_t) INIT_CAPACITY;
-    fsa->count = (size_t) 0;
+    fsa->count = 0;
+    fsa->end_of_file = false;
 
     char ** line_array_buffer = (char **) calloc( fsa->capacity, sizeof(char *) );
-
     if ( line_array_buffer == NULL )
     {
         fprintf(stderr, "Failed to allocate memory for line array buffer when creating file string array\n");

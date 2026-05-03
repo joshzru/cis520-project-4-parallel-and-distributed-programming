@@ -15,10 +15,11 @@ typedef struct file_string_array {
 	size_t count;
     size_t capacity;
 	char ** line_array;
+	bool end_of_file;
 } file_string_array_t;
 
 
-bool read_text_file(char* filename, file_string_array_t * file_string_struct);
+bool read_text_file(char* filename, file_string_array_t * file_string_struct, long offset, size_t chunk_size);
 
 bool create_fsa(file_string_array_t * fsa);
 
