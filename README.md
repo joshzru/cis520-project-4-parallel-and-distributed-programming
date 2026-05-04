@@ -14,4 +14,22 @@ Create the build directory
 mkdir build
 ```
 
-Navigate into the build directory and run cmake, then run make.
+Navigate into the build directory
+
+```
+cd build
+```
+
+Run cmake
+
+```
+cmake -S ..
+```
+
+Run make
+
+```
+make
+```
+
+Execute the resulting program (3way-mpi, 3way-pthread, 3way-openmp)
