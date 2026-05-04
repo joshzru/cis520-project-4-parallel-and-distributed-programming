@@ -68,7 +68,6 @@ int main(int argc, char *argv[]) {
     
     // Clean up
     // fsa is destroyed at the end of each loop
-    free(max_ascii);
     destroy_fsa(&fsa);
 
     return EXIT_SUCCESS;
