@@ -16,7 +16,7 @@
 NODES=2
 THREADS=16
 MEMORY="128M"
-PROGRAM_NAME="3way-pthread"
+PROGRAM_NAME="3way-openmp"
 PROGRAM_PATH="${HOME}/cis520-project-4-parallel-and-distributed-programming/${PROGRAM_NAME}/build/${PROGRAM_NAME}"
 LOG_FILENAME="${NODES}x${THREADS}x${MEMORY}_${PROGRAM_NAME}_log.txt"
 CSV_FILENAME="${NODES}x${THREADS}x${MEMORY}_${PROGRAM_NAME}.csv"
